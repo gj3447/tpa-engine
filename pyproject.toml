@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codegraph"
+version = "0.1.0"
+description = "Deterministic repo -> :Cg knowledge-graph extractor (scip + ast backends), owned by your own ontology, Neo4j/GraphML sinks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "gj3447" }]
+# The ast backend has ZERO runtime deps (stdlib only). neo4j is needed for the
+# Neo4j sink; protobuf for the scip backend. scip-python itself is an EXTERNAL
+# node binary (npm install -g @sourcegraph/scip-python) — documented in README.
+dependencies = []
+
+[project.optional-dependencies]
+neo4j = ["neo4j>=5"]
+scip = ["protobuf>=4"]
+all = ["neo4j>=5", "protobuf>=4"]
+dev = ["pytest>=7", "ruff", "neo4j>=5", "protobuf>=4"]
+
+[project.scripts]
+codegraph = "codegraph.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+codegraph = ["scip.proto"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
