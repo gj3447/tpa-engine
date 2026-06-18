@@ -14,7 +14,10 @@ into scalar ``attr_joern_*`` properties for provenance.
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -240,3 +243,116 @@ def _int(value: Any, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+# --------------------------------------------------------------------------- #
+# Joern runner — produce the JSON export this module consumes (needs a JVM)
+# --------------------------------------------------------------------------- #
+# A CPGQL script that dumps exactly the curated ``{nodes, edges}`` shape
+# ``build_graph`` reads: NAMESPACE_BLOCK (one per package) / TYPE_DECL / METHOD
+# nodes, and CONTAINS (DEFINES) / CALLS / INHERITS / IMPORTS edges. Synthetic
+# ``<operator>.*`` calls are dropped; external callees/types are not emitted as
+# own-graph nodes, so the importer's identity matching keeps the graph internal.
+# ``importCpg`` populates the implicit ``cpg``; ``ujson`` ships on Joern's classpath.
+_DUMP_SCRIPT = r"""
+@main def main(cpgFile: String, outFile: String): Unit = {
+  importCpg(cpgFile)
+  def pkg(fn: String): String = if (fn.contains(".")) fn.substring(0, fn.lastIndexOf('.')) else ""
+  val tds = cpg.typeDecl.isExternal(false).filterNot(_.filename == "<unknown>").l
+  val methods = cpg.method.isExternal(false).filterNot(_.filename == "<empty>").l
+  val tdByName = tds.map(t => t.fullName -> t.id).toMap
+  val internalMethodIds = methods.map(_.id).toSet
+  val filePkg = cpg.namespaceBlock.l.flatMap { n =>
+    val fn = n.fullName
+    if (fn.contains(":")) Some(n.filename -> fn.substring(fn.lastIndexOf(':') + 1)) else None
+  }.toMap
+
+  val packages = tds.map(t => pkg(t.fullName)).filter(_.nonEmpty).distinct
+  val nodes = scala.collection.mutable.ArrayBuffer[ujson.Obj]()
+  packages.foreach(p => nodes += ujson.Obj(
+    "id" -> s"ns:$p", "label" -> "NAMESPACE_BLOCK", "fullName" -> p, "name" -> p.split('.').last))
+  tds.foreach(t => nodes += ujson.Obj(
+    "id" -> t.id.toString, "label" -> "TYPE_DECL", "fullName" -> t.fullName, "name" -> t.name,
+    "filename" -> t.filename, "lineNumber" -> t.lineNumber.map(_.toString).getOrElse("")))
+  methods.foreach(m => nodes += ujson.Obj(
+    "id" -> m.id.toString, "label" -> "METHOD", "fullName" -> m.fullName, "name" -> m.name,
+    "filename" -> m.filename, "lineNumber" -> m.lineNumber.map(_.toString).getOrElse("")))
+
+  val edges = scala.collection.mutable.ArrayBuffer[ujson.Obj]()
+  tds.foreach { t => val p = pkg(t.fullName)
+    if (p.nonEmpty) edges += ujson.Obj("source" -> s"ns:$p", "target" -> t.id.toString, "label" -> "CONTAINS") }
+  methods.foreach { m => m.typeDecl.id.headOption.foreach(tid =>
+    edges += ujson.Obj("source" -> tid.toString, "target" -> m.id.toString, "label" -> "CONTAINS")) }
+  cpg.call.filterNot(_.methodFullName.startsWith("<operator>")).foreach { c =>
+    val callerId = c.method.id
+    c.callee.isExternal(false).id.find(internalMethodIds.contains).foreach { cid =>
+      if (callerId != cid) edges += ujson.Obj("source" -> callerId.toString, "target" -> cid.toString, "label" -> "CALLS") } }
+  tds.foreach { t => t.inheritsFromTypeFullName.foreach { base =>
+    tdByName.get(base).foreach(bid =>
+      edges += ujson.Obj("source" -> t.id.toString, "target" -> bid.toString, "label" -> "INHERITS")) } }
+  cpg.imports.foreach { i =>
+    val ent = i.importedEntity.getOrElse("")
+    val f = i.file.name.headOption.getOrElse("")
+    val p = filePkg.getOrElse(f, "")
+    if (p.nonEmpty && tdByName.contains(ent))
+      edges += ujson.Obj("source" -> s"ns:$p", "target" -> tdByName(ent).toString, "label" -> "IMPORTS") }
+
+  os.write.over(os.Path(outFile), ujson.write(ujson.Obj("nodes" -> nodes.toList, "edges" -> edges.toList), indent = 2))
+  println(s"WROTE_OK ${outFile} nodes=${nodes.size} edges=${edges.size}")
+}
+"""
+
+
+def _resolve_joern_home(joern_home: str | None) -> Path:
+    """Locate a Joern install dir (the one holding ``joern`` + ``joern-parse``)."""
+    if joern_home:
+        home = Path(joern_home).resolve()
+        if not (home / "joern-parse").exists():
+            raise FileNotFoundError(f"--joern-home {home} has no joern-parse")
+        return home
+    env = os.environ.get("JOERN_HOME")
+    if env and (Path(env) / "joern-parse").exists():
+        return Path(env).resolve()
+    on_path = shutil.which("joern-parse")
+    if on_path:
+        return Path(on_path).resolve().parent
+    raise FileNotFoundError(
+        "joern not found. Pass --joern-home <joern-cli dir>, set JOERN_HOME, or put "
+        "joern-parse on PATH. Install: https://docs.joern.io/installation (needs a JVM; "
+        "set JAVA_HOME if joern reports 'No java installations detected')."
+    )
+
+
+def run_joern(repo_path: str, *, joern_home: str | None = None,
+              language: str | None = None, workdir: str | None = None) -> str:
+    """Run ``joern-parse`` + the bundled CPGQL dump; return the export JSON path.
+
+    The export is exactly the ``{nodes, edges}`` shape :func:`build_graph` reads, so the
+    auto-run path and the ``--joern-export`` path share one importer. ``language`` is a
+    ``joern-parse --language`` frontend (e.g. ``javasrc``, ``c``, ``jssrc``, ``pythonsrc``);
+    ``None`` lets joern-parse auto-detect. Needs a JVM — a missing ``JAVA_HOME`` surfaces as
+    joern's own "No java installations detected" error.
+    """
+    home = _resolve_joern_home(joern_home)
+    repo = Path(repo_path).resolve()
+    work = Path(workdir).resolve() if workdir else Path(tempfile.mkdtemp(prefix="tpa_joern_"))
+    work.mkdir(parents=True, exist_ok=True)
+    cpg = work / "cpg.bin"
+    export = work / "joern_export.json"
+    script = work / "joern_dump.sc"
+    script.write_text(_DUMP_SCRIPT, encoding="utf-8")
+
+    parse_cmd = [str(home / "joern-parse"), str(repo), "--output", str(cpg)]
+    if language:
+        parse_cmd += ["--language", language]
+    # cwd=work: ``joern --script`` (importCpg) drops a ``workspace/`` dir in CWD — keep it
+    # in the throwaway workdir instead of polluting the caller's repo.
+    subprocess.run(parse_cmd, check=True, cwd=str(work))
+    subprocess.run(
+        [str(home / "joern"), "--script", str(script),
+         "--param", f"cpgFile={cpg}", "--param", f"outFile={export}"],
+        check=True, cwd=str(work),
+    )
+    if not export.exists():
+        raise RuntimeError(f"joern dump produced no export at {export}")
+    return str(export)

@@ -32,6 +32,8 @@ class BackendRequest:
     doc_filter: str | None = None
     joern_export: str | None = None
     joern_raw_out: str | None = None
+    joern_home: str | None = None
+    joern_language: str | None = None
 
     @classmethod
     def from_args(cls, args) -> BackendRequest:
@@ -46,6 +48,8 @@ class BackendRequest:
             doc_filter=getattr(args, "doc_filter", None),
             joern_export=getattr(args, "joern_export", None),
             joern_raw_out=getattr(args, "joern_raw_out", None),
+            joern_home=getattr(args, "joern_home", None),
+            joern_language=getattr(args, "joern_language", None),
         )
 
 
@@ -135,18 +139,25 @@ class ScipBackend:
 class JoernBackend:
     """Joern CPG export importer.
 
-    Joern remains a precision backend feeding the owned :Cg ontology. The MVP
-    consumes a JSON export so tests and CI do not require a Joern installation.
+    Joern remains a precision backend feeding the owned :Cg ontology. Either reuse a
+    prebuilt JSON export (``--joern-export``; tests/CI need no Joern install) or let the
+    backend run Joern itself (``joern-parse`` + a bundled CPGQL dump) on ``req.repo`` —
+    mirroring scip's "reuse an index or run the indexer" split.
     """
 
     name: str = "joern"
 
     def build_graph(self, req: BackendRequest) -> Graph:
-        if not req.joern_export:
-            raise ValueError("joern backend requires --joern-export <path-to-json>")
         from . import joern_backend
+        export = req.joern_export
+        if export:
+            export = str(Path(export).resolve())
+        else:
+            print(f"[tpa-engine] running joern on {req.repo} ...", file=sys.stderr)
+            export = joern_backend.run_joern(
+                str(req.repo), joern_home=req.joern_home, language=req.joern_language)
         return joern_backend.build_graph(
-            Path(req.joern_export).resolve(),
+            Path(export),
             corpus=req.corpus,
             raw_out=Path(req.joern_raw_out).resolve() if req.joern_raw_out else None,
         )
