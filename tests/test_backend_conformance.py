@@ -43,6 +43,9 @@ def _req(name: str, tmp_path) -> BackendRequest:
         return BackendRequest(repo=FIX, corpus="conf-python-ast-static", src_subdir="tinypkg")
     if name == "scala-source-static":
         return BackendRequest(repo=FIX, corpus="conf-scala-source-static", src_subdir="scalapkg")
+    if name == "joern":
+        return BackendRequest(repo=FIX, corpus="conf-joern",
+                              joern_export=str(FIX / "joern_export.json"))
     if name == "scip":
         return BackendRequest(repo=FIX, corpus="conf-scip",
                               scip_index=_build_scip_index(tmp_path))
@@ -66,7 +69,7 @@ def test_backend_output_conforms_to_model_schema(name, tmp_path):
 def test_registry_keys_are_the_cli_backend_choices():
     # drift guard: CLI --backend choices DERIVE from the registry, so a backend can never be
     # registered-but-unreachable or offered-but-missing.
-    assert set(BACKENDS) == {"ast", "python-ast-static", "scala-source-static", "scip"}
+    assert set(BACKENDS) == {"ast", "python-ast-static", "scala-source-static", "joern", "scip"}
     p = build_parser()
     for name in BACKENDS:
         ns = p.parse_args(["index", str(FIX / "tinypkg"), "--corpus", "c", "--backend", name])

@@ -52,12 +52,11 @@ src/tpa_engine/
   agent-queryable in `:Cg` even when Joern itself is not the storage/query
   surface.
 
-`joern` (planned)
-: Joern should be integrated as a backend/importer, not used as the identity of
-  `tpa-engine`. A Joern adapter may run Joern, read/export its CPG facts, and
-  normalize the useful precision facts into the owned `:Cg` ontology. The default
-  graph that agents see remains `:Cg`; raw Joern storage is only an optional
-  debug/provenance sink.
+`joern`
+: Joern JSON CPG export importer. It consumes `--joern-export`, normalizes
+  recognized CPG facts into `:Cg`, and can optionally copy the raw export with
+  `--joern-raw-out` for debugging/provenance. The default graph that agents see
+  remains `:Cg`; raw Joern storage is not the query contract.
 
 ## Joern Boundary
 
@@ -73,12 +72,13 @@ tree-sitter-style frontends, cpggen/atom, or later analyzers.
 
 The Joern adapter contract is:
 
-1. run or consume Joern/CPG output;
+1. consume Joern/CPG output (`--joern-export` for the MVP);
 2. map Joern nodes/edges into `CgNode` and `CgEdge`;
 3. preserve evidence/provenance in scalar `attrs` where useful;
 4. validate with `model.validate(graph)`;
 5. emit to normal sinks (`neo4j`, `json`, `graphml`);
-6. optionally retain a `joern_raw` artifact for analysis debugging only.
+6. optionally retain a `joern_raw` artifact for analysis debugging only
+   (`--joern-raw-out`).
 
 The adapter must not leak Joern labels, edge names, storage assumptions, or Scala
 DSL expectations into the public `:Cg` contract. If Joern discovers facts that

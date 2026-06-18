@@ -1,0 +1,70 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "FILE",
+      "name": "src/main/scala/com/acme/App.scala",
+      "filename": "src/main/scala/com/acme/App.scala"
+    },
+    {
+      "id": 2,
+      "label": "TYPE_DECL",
+      "fullName": "com.acme.App",
+      "name": "App",
+      "filename": "src/main/scala/com/acme/App.scala",
+      "lineNumber": 3
+    },
+    {
+      "id": 3,
+      "label": "METHOD",
+      "fullName": "com.acme.App.run",
+      "name": "run",
+      "filename": "src/main/scala/com/acme/App.scala",
+      "lineNumber": 4,
+      "signature": "()Unit"
+    },
+    {
+      "id": 4,
+      "label": "TYPE_DECL",
+      "fullName": "com.acme.Greeter",
+      "name": "Greeter",
+      "filename": "src/main/scala/com/acme/Greeter.scala",
+      "lineNumber": 1
+    },
+    {
+      "id": 5,
+      "label": "METHOD",
+      "fullName": "com.acme.Greeter.greet",
+      "name": "greet",
+      "filename": "src/main/scala/com/acme/Greeter.scala",
+      "lineNumber": 2,
+      "signature": "()String"
+    },
+    {
+      "id": 6,
+      "label": "TYPE_DECL",
+      "fullName": "com.acme.Base",
+      "name": "Base",
+      "filename": "src/main/scala/com/acme/Base.scala",
+      "lineNumber": 1
+    },
+    {
+      "id": 7,
+      "label": "CALL",
+      "fullName": "com.acme.App.run.<call>1",
+      "name": "greet",
+      "code": "greeter.greet()",
+      "lineNumber": 5
+    }
+  ],
+  "edges": [
+    {"source": 1, "target": 2, "label": "CONTAINS"},
+    {"source": 2, "target": 3, "label": "CONTAINS"},
+    {"source": 2, "target": 6, "label": "INHERITS"},
+    {"source": 3, "target": 7, "label": "AST"},
+    {"source": 7, "target": 5, "label": "CALL"},
+    {"source": 1, "target": 4, "label": "CONTAINS"},
+    {"source": 4, "target": 5, "label": "CONTAINS"},
+    {"source": 1, "target": 4, "label": "IMPORT"}
+  ]
+}

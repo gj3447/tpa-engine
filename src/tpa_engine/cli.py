@@ -136,6 +136,10 @@ def _add_graph_args(sp: argparse.ArgumentParser) -> None:
                          "auto-detected if omitted)")
     sp.add_argument("--doc-filter", default=None,
                     help="scip: only documents under this path prefix")
+    sp.add_argument("--joern-export", default=None,
+                    help="joern: read an existing Joern JSON CPG export")
+    sp.add_argument("--joern-raw-out", default=None,
+                    help="joern: optional path to copy the raw export artifact")
 
 
 def build_parser() -> argparse.ArgumentParser:

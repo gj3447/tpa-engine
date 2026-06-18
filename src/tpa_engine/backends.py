@@ -30,6 +30,8 @@ class BackendRequest:
     project_name: str | None = None
     packages: tuple[str, ...] | None = None
     doc_filter: str | None = None
+    joern_export: str | None = None
+    joern_raw_out: str | None = None
 
     @classmethod
     def from_args(cls, args) -> BackendRequest:
@@ -42,6 +44,8 @@ class BackendRequest:
             project_name=getattr(args, "project_name", None),
             packages=tuple(pkgs) if pkgs else None,
             doc_filter=getattr(args, "doc_filter", None),
+            joern_export=getattr(args, "joern_export", None),
+            joern_raw_out=getattr(args, "joern_raw_out", None),
         )
 
 
@@ -127,7 +131,29 @@ class ScipBackend:
             index_path, corpus=req.corpus, own_packages=own, doc_filter=doc_filter)
 
 
+@dataclass(frozen=True)
+class JoernBackend:
+    """Joern CPG export importer.
+
+    Joern remains a precision backend feeding the owned :Cg ontology. The MVP
+    consumes a JSON export so tests and CI do not require a Joern installation.
+    """
+
+    name: str = "joern"
+
+    def build_graph(self, req: BackendRequest) -> Graph:
+        if not req.joern_export:
+            raise ValueError("joern backend requires --joern-export <path-to-json>")
+        from . import joern_backend
+        return joern_backend.build_graph(
+            Path(req.joern_export).resolve(),
+            corpus=req.corpus,
+            raw_out=Path(req.joern_raw_out).resolve() if req.joern_raw_out else None,
+        )
+
+
 register(AstBackend())
 register(PythonAstStaticBackend())
 register(ScalaSourceStaticBackend())
+register(JoernBackend())
 register(ScipBackend())
