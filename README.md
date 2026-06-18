@@ -9,7 +9,7 @@ deterministic, no LLM, no vendor schema.
 (Module / Class / Function nodes; `DEFINES` / `CALLS` / `IMPORTS` edges) from a
 Python repo and writes it into **your own ontology** (`:Cg`, partitioned by a
 `cg_corpus` key you choose) instead of whatever schema a vendored indexer would
-impose. Two backends share one schema:
+impose. Backends share one schema:
 
 - **`scip`** — runs [`scip-python`](https://github.com/sourcegraph/scip-python)
   under the hood and parses the resulting `index.scip`. Type-resolved, so it
@@ -18,6 +18,21 @@ impose. Two backends share one schema:
 - **`ast`** — stdlib `ast` only. **Zero dependencies, no node binary.** A solid,
   honest fallback that drops (and counts) calls it cannot resolve rather than
   guessing — but it is less precise than `scip` (see *Honest limits*).
+- **`python-ast-static`** — the larger static-analysis track. It keeps `ast`
+  stable while emitting richer facts from stdlib AST: `INHERITS`, `DECORATES`,
+  `REFERENCES`, and `ASSIGNS` in addition to the core graph.
+- **`scala-source-static`** — zero-dependency Scala/SBT source scanning for
+  package/import/type/method/call/reference facts. It is a pragmatic fallback
+  for Joern-scale Scala repos when the agent-facing graph still needs to be
+  owned `:Cg`.
+
+Future precision analyzers should follow the same rule: they are **backends into
+`:Cg`**, not replacements for `:Cg`. In particular, Joern belongs here as a
+Joern backend/importer that normalizes CPG facts into the owned ontology. It
+should not turn `tpa-engine` into a Joern wrapper or make agents depend on
+Joern's native schema, storage, runtime, or Scala DSL. Raw Joern output can be
+kept as an optional debug/provenance artifact, but the agent-facing graph remains
+Neo4j/JSON/GraphML over `:Cg`.
 
 ### The thesis: deterministic extractor + LLM on top
 
@@ -48,6 +63,12 @@ npm install -g @sourcegraph/scip-python
 ```bash
 # ast backend, file output, no DB needed (safe anywhere)
 tpa-engine index /path/to/repo --backend ast --corpus myrepo --out graphml
+
+# richer stdlib static analysis graph
+tpa-engine index /path/to/repo --backend python-ast-static --corpus myrepo-static --out json
+
+# Scala/SBT source-structure graph
+tpa-engine index /path/to/scala-repo --backend scala-source-static --corpus myscala --out json
 
 # scip backend (runs scip-python, then parses) -> Neo4j
 tpa-engine index /path/to/repo --backend scip --corpus myrepo-scip --out neo4j \
@@ -134,12 +155,19 @@ Node props: `qualified_name`, `name`, `kind`, `module`, `file`, `lineno`, `loc`,
 | `DEFINES` | Module/Class → Class/Function     | lexical containment              |
 | `CALLS`   | Function → Function (`weight`)    | call-site count                  |
 | `IMPORTS` | Module → Module (`weight`)        | module dependency                |
+| `INHERITS` | Class → Class/base symbol        | class inheritance                |
+| `DECORATES` | Class/Function → decorator      | decorator use                    |
+| `REFERENCES` | Scope → symbol                 | symbol reference                 |
+| `ASSIGNS` | Scope → Term                      | assignment-introduced term       |
 
 **`cg_corpus` partitioning** — the MERGE key is the composite
 `(qualified_name, cg_corpus)`. Pick a corpus per repo (or per backend variant of
 the same repo); multiple corpora live in one database with no collision. Schema
 is defined once in [`src/tpa_engine/model.py`](src/tpa_engine/model.py) and shared
 by both backends and all sinks.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the static-analysis
+engine architecture, Joern boundary, and extension rules.
 
 ### Longinus-join example query
 
@@ -185,6 +213,9 @@ src/tpa_engine/
   model.py        # the :Cg ontology — SINGLE SOURCE of the schema
   scip_backend.py # scip-python index.scip -> Graph (type-precise)
   ast_backend.py  # stdlib ast -> Graph (zero-dep fallback)
+  frontends/
+    python_static.py # richer stdlib static-analysis frontend
+    scala_static.py  # Scala/SBT source-structure frontend for Joern-scale repos
   neo4j_sink.py   # idempotent corpus-namespaced MERGE loader
   graphml_sink.py # GraphML + node-link JSON file output (no DB)
   fitness.py      # structural gates: import-cycle SCC (import_cycles / cycle_count)
