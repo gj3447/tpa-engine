@@ -13,32 +13,16 @@ import os
 import sys
 from pathlib import Path
 
+from .backends import BACKENDS, BackendRequest
 from .model import Graph
 
 
 def _build_graph(args) -> Graph:
+    # Single registry dispatch — backend selection is a lookup, not a conditional.
     repo = Path(args.repo_path).resolve()
     if not repo.exists():
         sys.exit(f"error: repo path does not exist: {repo}")
-
-    if args.backend == "ast":
-        from . import ast_backend
-        src_root = repo / args.src_subdir if args.src_subdir else repo
-        return ast_backend.build_graph(src_root, corpus=args.corpus)
-
-    # scip backend
-    from . import scip_backend
-    index_path = args.scip_index
-    if index_path:
-        index_path = str(Path(index_path).resolve())
-    else:
-        print(f"[tpa-engine] running scip-python on {repo} ...", file=sys.stderr)
-        index_path = scip_backend.run_scip_python(
-            str(repo), project_name=args.project_name)
-    doc_filter = args.doc_filter or (f"{args.src_subdir}/" if args.src_subdir else None)
-    own = set(args.package) if args.package else None
-    return scip_backend.build_graph(
-        index_path, corpus=args.corpus, own_packages=own, doc_filter=doc_filter)
+    return BACKENDS[args.backend].build_graph(BackendRequest.from_args(args))
 
 
 def _emit(graph: Graph, args) -> None:
@@ -99,6 +83,27 @@ def _check(args) -> int:
         return 0
     from .fitness import import_cycles
     cycles = import_cycles(graph)
+    if getattr(args, "baseline", None):
+        from pathlib import Path
+
+        from .baseline import Baseline
+        bpath = Path(args.baseline)
+        if getattr(args, "update_baseline", False):
+            wrote = Baseline.save_if_changed(bpath, args.corpus, cycles)
+            print(f"[tpa-engine] baseline {'updated' if wrote else 'unchanged'}: "
+                  f"{bpath} ({len(cycles)} cycle row(s))")
+            return 0
+        new, fixed = Baseline.load(bpath).diff(cycles)
+        print(f"[tpa-engine] corpus '{args.corpus}': {len(cycles)} cycle(s); "
+              f"baseline known {len(cycles) - len(new)}, new {len(new)}, fixed {len(fixed)}")
+        if new:
+            for c in new:
+                print("  NEW CYCLE: " + " <-> ".join(c), file=sys.stderr)
+            print(f"[tpa-engine] FAIL: {len(new)} new import cycle(s) absent from baseline",
+                  file=sys.stderr)
+            return 1
+        print("[tpa-engine] OK: no new cycles vs baseline")
+        return 0
     n = len(cycles)
     print(f"[tpa-engine] corpus '{args.corpus}': {n} import cycle(s); "
           f"budget --max-cycles={args.max_cycles}")
@@ -116,7 +121,7 @@ def _check(args) -> int:
 def _add_graph_args(sp: argparse.ArgumentParser) -> None:
     """Args shared by `index` and `check` — everything `_build_graph` consumes."""
     sp.add_argument("repo_path", help="path to the repo to index")
-    sp.add_argument("--backend", choices=("scip", "ast"), default="ast",
+    sp.add_argument("--backend", choices=tuple(sorted(BACKENDS)), default="ast",
                     help="scip = type-precise (needs scip-python node binary); "
                          "ast = stdlib-only fallback (default)")
     sp.add_argument("--corpus", required=True,
@@ -170,6 +175,12 @@ def build_parser() -> argparse.ArgumentParser:
                           "repeatable (e.g. fan_in:>:3, god_object_loc:>:500, "
                           "layering:>:0:core,domain,ui). Supersedes --max-cycles. "
                           "Predicates: import_cycles, fan_in, god_object_loc, layering.")
+    chk.add_argument("--baseline", default=None,
+                     help="path to baseline.json: accept its cycle rows as known debt, "
+                          "fail only on NEW cycles (per-row set-membership ratchet)")
+    chk.add_argument("--update-baseline", action="store_true",
+                     help="rewrite --baseline to the CURRENT cycle set "
+                          "(write-only-if-changed) and exit 0")
     return p
 
 

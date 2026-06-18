@@ -95,6 +95,18 @@ tpa-engine check . --backend ast --src-subdir src --corpus myrepo \
 New predicates self-register via the `@predicate` seam in `fitness.py` (mirrors the
 `@check` registry); the `check()` runner is never edited to add one.
 
+**Brownfield ratchet (`--baseline`).** On a repo with pre-existing debt, accept the
+current cycle *rows* as a checked-in `baseline.json` and fail only on NEW rows — finer
+than the coarse `--max-cycles` count (a cycle SWAP that keeps the count unchanged still
+fails). `--update-baseline` re-accepts the current set (write-only-if-changed).
+
+```bash
+tpa-engine check . --backend ast --src-subdir src --corpus myrepo \
+    --baseline baseline.json --update-baseline   # accept current debt
+tpa-engine check . --backend ast --src-subdir src --corpus myrepo \
+    --baseline baseline.json                     # green unless a NEW cycle appears
+```
+
 Connection flags default to env vars: `TPA_ENGINE_NEO4J_URI`,
 `TPA_ENGINE_NEO4J_USER`, `TPA_ENGINE_NEO4J_PASSWORD`.
 
