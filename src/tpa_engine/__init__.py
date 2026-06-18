@@ -9,6 +9,16 @@ ontology, your cg_corpus partition, your MERGE keys) — then put the LLM/agent
 reasoning ON TOP of that owned graph instead of trusting a vendor schema.
 """
 
+from .fitness import (
+    PREDICATE_REGISTRY,
+    Gate,
+    GateResult,
+    check,
+    cycle_count,
+    import_cycles,
+    parse_gate,
+    predicate,
+)
 from .model import (
     EDGE_TYPES,
     NODE_TYPES,
@@ -23,5 +33,8 @@ __version__ = "0.1.0"
 __all__ = [
     "Graph", "CgNode", "CgEdge",
     "NODE_TYPES", "EDGE_TYPES", "TYPE_LABEL",
+    # structural fitness gates (data-driven)
+    "import_cycles", "cycle_count", "check", "Gate", "GateResult",
+    "parse_gate", "predicate", "PREDICATE_REGISTRY",
     "__version__",
 ]

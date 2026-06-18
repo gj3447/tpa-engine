@@ -76,6 +76,25 @@ tpa-engine check /path/to/repo --backend ast --src-subdir src --corpus myrepo --
 tpa-engine check /path/to/repo --backend ast --corpus myrepo --max-cycles 1 --show
 ```
 
+**Data-driven gates (`--gate`).** Beyond cycles, any structural property is a gate
+expressed as DATA — `predicate:op:threshold[:arg]` — so a new gate is a string, not a
+code edit (the CodeQL "structural property = query over relations" / jQAssistant
+"rules-as-data" idea). Shipped predicates: `import_cycles`, `fan_in` (max distinct
+callers of any function), `god_object_loc` (max node LOC), `layering` (imports against a
+declared module order). Repeatable; pass iff all pass; offenders are surfaced.
+
+```bash
+# fail if any function has > 10 distinct callers OR any unit exceeds 500 LOC
+tpa-engine check /path/to/repo --backend ast --src-subdir src --corpus myrepo \
+    --gate fan_in:>:10 --gate god_object_loc:>:500
+# layering: nothing in an earlier layer may import a later one
+tpa-engine check . --backend ast --src-subdir src --corpus myrepo \
+    --gate layering:>:0:core,domain,adapters,ui
+```
+
+New predicates self-register via the `@predicate` seam in `fitness.py` (mirrors the
+`@check` registry); the `check()` runner is never edited to add one.
+
 Connection flags default to env vars: `TPA_ENGINE_NEO4J_URI`,
 `TPA_ENGINE_NEO4J_USER`, `TPA_ENGINE_NEO4J_PASSWORD`.
 

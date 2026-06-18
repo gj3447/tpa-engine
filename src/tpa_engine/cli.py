@@ -72,13 +72,32 @@ def _emit(graph: Graph, args) -> None:
 
 
 def _check(args) -> int:
-    """Structural fitness gate: fail (nonzero exit) on too many import cycles.
+    """Structural fitness gate: fail (nonzero exit) on a structural regression.
 
-    The CI closure — tpa_engine polices the codebase it was built to study. Exit 1
-    when the import-cycle count exceeds ``--max-cycles`` (default 0 = no cycles allowed).
+    Default = import-cycle budget (``--max-cycles``). With one or more ``--gate``, runs a
+    COMPOSITION of data-driven structural gates (``predicate:op:threshold[:arg]``) — a new
+    gate is DATA, not a code edit. The CI closure: tpa_engine polices the code it studies.
     """
-    from .fitness import import_cycles
     graph = _build_graph(args)
+    if getattr(args, "gates", None):
+        from .fitness import check as run_gates
+        from .fitness import parse_gate
+        results = run_gates(graph, [parse_gate(s) for s in args.gates])
+        failed = False
+        for r in results:
+            arg = f":{r.gate.arg}" if r.gate.arg else ""
+            print(f"[tpa-engine] {'FAIL' if r.failed else 'OK'} "
+                  f"{r.gate.predicate} {r.gate.op} {r.gate.threshold}{arg} (value={r.value})")
+            if r.failed:
+                failed = True
+                for name, contrib in r.offenders[:10]:
+                    print(f"    offender: {name} ({contrib})")
+        if failed:
+            print("[tpa-engine] FAIL: a structural gate was violated", file=sys.stderr)
+            return 1
+        print(f"[tpa-engine] OK: all {len(results)} gate(s) passed")
+        return 0
+    from .fitness import import_cycles
     cycles = import_cycles(graph)
     n = len(cycles)
     print(f"[tpa-engine] corpus '{args.corpus}': {n} import cycle(s); "
@@ -146,6 +165,11 @@ def build_parser() -> argparse.ArgumentParser:
                      help="max allowed import cycles before failing (default 0)")
     chk.add_argument("--show", action="store_true",
                      help="print all cycles even when within budget")
+    chk.add_argument("--gate", action="append", default=None, dest="gates",
+                     help="data-driven structural gate 'predicate:op:threshold[:arg]', "
+                          "repeatable (e.g. fan_in:>:3, god_object_loc:>:500, "
+                          "layering:>:0:core,domain,ui). Supersedes --max-cycles. "
+                          "Predicates: import_cycles, fan_in, god_object_loc, layering.")
     return p
 
 
