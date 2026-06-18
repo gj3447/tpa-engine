@@ -1,7 +1,7 @@
 """Fitness functions over a :Cg graph — structural assertions for CI gates.
 
 This is the closure: the engine-dissection tool turned back on its own author. Run
-``codegraph check`` in CI and fail the build on a structural regression (a reintroduced
+``tpa_engine check`` in CI and fail the build on a structural regression (a reintroduced
 import cycle). The ast backend is deterministic and zero-dependency, so an "import
 cycle count" is a *fact about the source*, not an LLM opinion — a trustworthy gate,
 the same role import-linter's independence/layers contracts play.

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from codegraph.scip_backend import decode_descriptors, parse_symbol
+from tpa_engine.scip_backend import decode_descriptors, parse_symbol
 
 STRIP = ("src",)
 

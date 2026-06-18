@@ -7,7 +7,7 @@ on a ``Protocol``-typed variable links to the canonical ``Backend.ship``
 definition, and a bare ``.get(`` does not collapse onto an unrelated ``get``
 definition.
 
-Refactored from ``tmp_codegraph_scip/scip_to_graph.py``: the hardcoded
+Refactored from ``tmp_tpa_engine_scip/scip_to_graph.py``: the hardcoded
 ``package == "ooptdd"`` / ``src.`` stripping is generalised to *any* repo —
 the set of "own" packages is auto-detected from the index (or passed in), and
 the module-prefix to strip is derived rather than literal.

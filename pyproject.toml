@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "codegraph"
+name = "tpa-engine"
 version = "0.1.0"
 description = "Deterministic repo -> :Cg knowledge-graph extractor (scip + ast backends), owned by your own ontology, Neo4j/GraphML sinks."
 readme = "README.md"
@@ -22,13 +22,13 @@ all = ["neo4j>=5", "protobuf>=4"]
 dev = ["pytest>=7", "ruff", "neo4j>=5", "protobuf>=4"]
 
 [project.scripts]
-codegraph = "codegraph.cli:main"
+tpa-engine = "tpa_engine.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-codegraph = ["scip.proto"]
+tpa_engine = ["scip.proto"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

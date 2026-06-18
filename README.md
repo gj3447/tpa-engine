@@ -1,11 +1,11 @@
-# codegraph
+# tpa-engine
 
 Turn **any** repo into a `:Cg` Neo4j / GraphML knowledge graph that **you own** —
 deterministic, no LLM, no vendor schema.
 
 ## What it is
 
-`codegraph` is a small standalone tool that extracts a code graph
+`tpa-engine` is a small standalone tool that extracts a code graph
 (Module / Class / Function nodes; `DEFINES` / `CALLS` / `IMPORTS` edges) from a
 Python repo and writes it into **your own ontology** (`:Cg`, partitioned by a
 `cg_corpus` key you choose) instead of whatever schema a vendored indexer would
@@ -47,20 +47,20 @@ npm install -g @sourcegraph/scip-python
 
 ```bash
 # ast backend, file output, no DB needed (safe anywhere)
-codegraph index /path/to/repo --backend ast --corpus myrepo --out graphml
+tpa-engine index /path/to/repo --backend ast --corpus myrepo --out graphml
 
 # scip backend (runs scip-python, then parses) -> Neo4j
-codegraph index /path/to/repo --backend scip --corpus myrepo-scip --out neo4j \
+tpa-engine index /path/to/repo --backend scip --corpus myrepo-scip --out neo4j \
     --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password ***
 
 # reuse an existing index.scip instead of re-running scip-python
-codegraph index /path/to/repo --backend scip --scip-index index.scip \
+tpa-engine index /path/to/repo --backend scip --scip-index index.scip \
     --corpus myrepo-scip --out json --output myrepo
 ```
 
 ### `check` — structural fitness gate (CI)
 
-Turn the graph into a pass/fail gate: `codegraph check` builds the graph (ast backend
+Turn the graph into a pass/fail gate: `tpa-engine check` builds the graph (ast backend
 by default — zero-dep, CI-safe) and **exits nonzero when the import-cycle count exceeds
 `--max-cycles`** (default 0 = no cycles allowed). An import cycle = a strongly-connected
 component (size > 1) of the module `IMPORTS` graph (`fitness.import_cycles` /
@@ -70,14 +70,14 @@ engine-dissection tool back at your own engine and fail CI on a structural regre
 
 ```bash
 # fail the build if the repo has ANY import cycle
-codegraph check /path/to/repo --backend ast --src-subdir src --corpus myrepo --max-cycles 0
+tpa-engine check /path/to/repo --backend ast --src-subdir src --corpus myrepo --max-cycles 0
 
 # allow a known-debt baseline of 1 cycle (ratchet); --show prints cycles even when OK
-codegraph check /path/to/repo --backend ast --corpus myrepo --max-cycles 1 --show
+tpa-engine check /path/to/repo --backend ast --corpus myrepo --max-cycles 1 --show
 ```
 
-Connection flags default to env vars: `CODEGRAPH_NEO4J_URI`,
-`CODEGRAPH_NEO4J_USER`, `CODEGRAPH_NEO4J_PASSWORD`.
+Connection flags default to env vars: `TPA_ENGINE_NEO4J_URI`,
+`TPA_ENGINE_NEO4J_USER`, `TPA_ENGINE_NEO4J_PASSWORD`.
 
 Outputs: `--out graphml` / `--out json` write a file (no DB); `--out neo4j`
 idempotently MERGEs into Neo4j (clears only the chosen `cg_corpus` first).
@@ -107,7 +107,7 @@ Node props: `qualified_name`, `name`, `kind`, `module`, `file`, `lineno`, `loc`,
 **`cg_corpus` partitioning** — the MERGE key is the composite
 `(qualified_name, cg_corpus)`. Pick a corpus per repo (or per backend variant of
 the same repo); multiple corpora live in one database with no collision. Schema
-is defined once in [`src/codegraph/model.py`](src/codegraph/model.py) and shared
+is defined once in [`src/tpa_engine/model.py`](src/tpa_engine/model.py) and shared
 by both backends and all sinks.
 
 ### Longinus-join example query
@@ -150,14 +150,14 @@ ORDER BY inbound_calls ASC;
 ## Layout
 
 ```
-src/codegraph/
+src/tpa_engine/
   model.py        # the :Cg ontology — SINGLE SOURCE of the schema
   scip_backend.py # scip-python index.scip -> Graph (type-precise)
   ast_backend.py  # stdlib ast -> Graph (zero-dep fallback)
   neo4j_sink.py   # idempotent corpus-namespaced MERGE loader
   graphml_sink.py # GraphML + node-link JSON file output (no DB)
   fitness.py      # structural gates: import-cycle SCC (import_cycles / cycle_count)
-  cli.py          # `codegraph index ...` / `codegraph check ...`
+  cli.py          # `tpa-engine index ...` / `tpa-engine check ...`
   scip_pb2.py     # generated SCIP protobuf bindings (scip.proto bundled)
 tests/            # ast extraction + SCIP tokenizer + schema invariants + fitness
 ```

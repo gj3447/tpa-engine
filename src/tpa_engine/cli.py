@@ -1,6 +1,6 @@
-"""``codegraph`` CLI — turn any repo into a :Cg knowledge graph you own.
+"""``tpa_engine`` CLI — turn any repo into a :Cg knowledge graph you own.
 
-    codegraph index <repo_path> --backend {scip,ast} --corpus <name> \
+    tpa_engine index <repo_path> --backend {scip,ast} --corpus <name> \
         --out {neo4j,graphml,json} [connection/output flags]
 
 Deterministic, no LLM, no network beyond scip-python's local indexing.
@@ -32,7 +32,7 @@ def _build_graph(args) -> Graph:
     if index_path:
         index_path = str(Path(index_path).resolve())
     else:
-        print(f"[codegraph] running scip-python on {repo} ...", file=sys.stderr)
+        print(f"[tpa-engine] running scip-python on {repo} ...", file=sys.stderr)
         index_path = scip_backend.run_scip_python(
             str(repo), project_name=args.project_name)
     doc_filter = args.doc_filter or (f"{args.src_subdir}/" if args.src_subdir else None)
@@ -45,52 +45,52 @@ def _emit(graph: Graph, args) -> None:
     counts = graph.counts()
     if args.out == "neo4j":
         from . import neo4j_sink
-        uri = args.neo4j_uri or os.environ.get("CODEGRAPH_NEO4J_URI", "bolt://localhost:7687")
-        user = args.neo4j_user or os.environ.get("CODEGRAPH_NEO4J_USER", "neo4j")
-        pw = args.neo4j_password or os.environ.get("CODEGRAPH_NEO4J_PASSWORD")
+        uri = args.neo4j_uri or os.environ.get("TPA_ENGINE_NEO4J_URI", "bolt://localhost:7687")
+        user = args.neo4j_user or os.environ.get("TPA_ENGINE_NEO4J_USER", "neo4j")
+        pw = args.neo4j_password or os.environ.get("TPA_ENGINE_NEO4J_PASSWORD")
         if not pw:
             sys.exit("error: neo4j password required "
-                     "(--neo4j-password or CODEGRAPH_NEO4J_PASSWORD)")
+                     "(--neo4j-password or TPA_ENGINE_NEO4J_PASSWORD)")
         summary = neo4j_sink.load(graph, uri=uri, user=user, password=pw,
                                   database=args.neo4j_database)
-        print(f"[codegraph] loaded corpus '{graph.corpus}' into {uri}")
+        print(f"[tpa-engine] loaded corpus '{graph.corpus}' into {uri}")
         print(f"  node labels: {summary['labels']}")
         print(f"  edge types : {summary['edges']}")
     else:
         from . import graphml_sink
-        stem = Path(args.output or f"{args.corpus}_codegraph")
+        stem = Path(args.output or f"{args.corpus}_tpa_engine")
         if args.out == "graphml":
             p = graphml_sink.write_graphml(graph, stem.with_suffix(".graphml"))
         else:  # json
             p = graphml_sink.write_json(graph, stem.with_suffix(".json"))
-        print(f"[codegraph] wrote {p}")
+        print(f"[tpa-engine] wrote {p}")
 
-    print(f"[codegraph] nodes={counts['total_nodes']} {counts['nodes']}")
-    print(f"[codegraph] edges={counts['total_edges']} {counts['edges']}")
+    print(f"[tpa-engine] nodes={counts['total_nodes']} {counts['nodes']}")
+    print(f"[tpa-engine] edges={counts['total_edges']} {counts['edges']}")
     if graph.stats:
-        print(f"[codegraph] backend stats: {graph.stats}")
+        print(f"[tpa-engine] backend stats: {graph.stats}")
 
 
 def _check(args) -> int:
     """Structural fitness gate: fail (nonzero exit) on too many import cycles.
 
-    The CI closure — codegraph polices the codebase it was built to study. Exit 1
+    The CI closure — tpa_engine polices the codebase it was built to study. Exit 1
     when the import-cycle count exceeds ``--max-cycles`` (default 0 = no cycles allowed).
     """
     from .fitness import import_cycles
     graph = _build_graph(args)
     cycles = import_cycles(graph)
     n = len(cycles)
-    print(f"[codegraph] corpus '{args.corpus}': {n} import cycle(s); "
+    print(f"[tpa-engine] corpus '{args.corpus}': {n} import cycle(s); "
           f"budget --max-cycles={args.max_cycles}")
     if cycles and (n > args.max_cycles or args.show):
         for c in cycles:
             print("  CYCLE: " + " <-> ".join(c))
     if n > args.max_cycles:
-        print(f"[codegraph] FAIL: {n} import cycle(s) exceeds budget "
+        print(f"[tpa-engine] FAIL: {n} import cycle(s) exceeds budget "
               f"{args.max_cycles}", file=sys.stderr)
         return 1
-    print("[codegraph] OK: within cycle budget")
+    print("[tpa-engine] OK: within cycle budget")
     return 0
 
 
@@ -118,7 +118,7 @@ def _add_graph_args(sp: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="codegraph",
+        prog="tpa-engine",
         description="Turn any repo into a :Cg Neo4j/GraphML knowledge graph "
                     "you own (deterministic, no LLM).")
     sub = p.add_subparsers(dest="command", required=True)
@@ -130,11 +130,11 @@ def build_parser() -> argparse.ArgumentParser:
     idx.add_argument("--output", help="output file stem (graphml/json sinks)")
     # neo4j connection (env-defaulted)
     idx.add_argument("--neo4j-uri", default=None,
-                     help="default env CODEGRAPH_NEO4J_URI / bolt://localhost:7687")
+                     help="default env TPA_ENGINE_NEO4J_URI / bolt://localhost:7687")
     idx.add_argument("--neo4j-user", default=None,
-                     help="default env CODEGRAPH_NEO4J_USER / neo4j")
+                     help="default env TPA_ENGINE_NEO4J_USER / neo4j")
     idx.add_argument("--neo4j-password", default=None,
-                     help="default env CODEGRAPH_NEO4J_PASSWORD")
+                     help="default env TPA_ENGINE_NEO4J_PASSWORD")
     idx.add_argument("--neo4j-database", default=None,
                      help="optional Neo4j database name")
 

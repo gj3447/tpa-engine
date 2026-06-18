@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from codegraph.model import TYPE_LABEL, CgEdge, CgNode, Graph
+from tpa_engine.model import TYPE_LABEL, CgEdge, CgNode, Graph
 
 
 def test_node_type_validated():

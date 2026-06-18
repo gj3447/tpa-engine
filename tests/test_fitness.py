@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from codegraph.fitness import cycle_count, import_cycles, structural_assertions
-from codegraph.model import EDGE_IMPORTS, NODE_MODULE, CgNode, Graph
+from tpa_engine.fitness import cycle_count, import_cycles, structural_assertions
+from tpa_engine.model import EDGE_IMPORTS, NODE_MODULE, CgNode, Graph
 
 
 def _mod_graph(edges: list[tuple[str, str]], etype: str = EDGE_IMPORTS) -> Graph:

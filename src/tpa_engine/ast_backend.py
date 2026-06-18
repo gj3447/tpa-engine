@@ -13,7 +13,7 @@ honest but LESS precise than the scip backend — notably it CANNOT tell
 single ``get`` definition is exactly the kind of false hotspot the scip
 backend fixes (see README).
 
-Refactored from ``tmp_codegraph_diy/extract_codegraph.py``: the networkx
+Refactored from ``tmp_tpa_engine_diy/extract_tpa_engine.py``: the networkx
 ``DiGraph`` is replaced by the shared ``model.Graph`` so the schema is owned in
 one place, and module discovery is generalised to any package root.
 """

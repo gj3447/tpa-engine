@@ -5,7 +5,7 @@ composite ``(qualified_name, cg_corpus)`` uniqueness constraint per structural
 label, then MERGEs nodes and edges in batches. Multiple corpora coexist with
 no collision because every key and relationship carries ``cg_corpus``.
 
-Refactored from ``tmp_codegraph_scip/scip_load_neo4j.py``: the label map and
+Refactored from ``tmp_tpa_engine_scip/scip_load_neo4j.py``: the label map and
 schema now come from ``model.py`` (single source); URI/auth are parameters
 (env-defaulted by the CLI) rather than hardcoded.
 """

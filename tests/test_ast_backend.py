@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from codegraph import ast_backend
-from codegraph.graphml_sink import write_graphml, write_json
+from tpa_engine import ast_backend
+from tpa_engine.graphml_sink import write_graphml, write_json
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

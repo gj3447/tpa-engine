@@ -1,4 +1,4 @@
-"""codegraph — deterministic repo -> :Cg knowledge-graph extractor.
+"""tpa_engine — deterministic repo -> :Cg knowledge-graph extractor.
 
 Two backends (``scip`` type-precise, ``ast`` stdlib-only), two file sinks
 (``graphml``, ``json``) and a Neo4j sink, all sharing ONE schema defined in
