@@ -12,11 +12,12 @@ from pathlib import Path
 from tpa_engine import ast_backend
 from tpa_engine.graphml_sink import write_graphml, write_json
 
-FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURES = Path(__file__).parent / "fixtures" / "tinypkg"
 
 
 def _build():
-    return ast_backend.build_graph(FIXTURES, corpus="tinypkg-test")
+    return ast_backend.build_graph(
+        FIXTURES, corpus="tinypkg-test", package_anchor=FIXTURES.parent)
 
 
 def test_node_counts_exact():

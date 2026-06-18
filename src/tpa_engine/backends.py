@@ -76,6 +76,39 @@ class AstBackend:
 
 
 @dataclass(frozen=True)
+class PythonAstStaticBackend:
+    """Growth backend for the larger static analyzer track.
+
+    It keeps the legacy ``ast`` backend stable while emitting richer facts
+    (inheritance/decorators/references/assignments) from the same stdlib AST.
+    """
+
+    name: str = "python-ast-static"
+
+    def build_graph(self, req: BackendRequest) -> Graph:
+        from .frontends import python_static
+        src_root = req.repo / req.src_subdir if req.src_subdir else req.repo
+        return python_static.build_graph(src_root, corpus=req.corpus)
+
+
+@dataclass(frozen=True)
+class ScalaSourceStaticBackend:
+    """Zero-dependency Scala/SBT source-structure backend.
+
+    This is the fallback for Scala repos that Joern cannot parse as input source
+    itself. It emits deterministic package/file/type/def/import/call facts into
+    the owned :Cg ontology.
+    """
+
+    name: str = "scala-source-static"
+
+    def build_graph(self, req: BackendRequest) -> Graph:
+        from .frontends import scala_static
+        src_root = req.repo / req.src_subdir if req.src_subdir else req.repo
+        return scala_static.build_graph(src_root, corpus=req.corpus)
+
+
+@dataclass(frozen=True)
 class ScipBackend:
     name: str = "scip"
 
@@ -95,4 +128,6 @@ class ScipBackend:
 
 
 register(AstBackend())
+register(PythonAstStaticBackend())
+register(ScalaSourceStaticBackend())
 register(ScipBackend())

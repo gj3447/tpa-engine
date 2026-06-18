@@ -17,6 +17,10 @@ Edge types (``CgEdge.etype``):
     DEFINES   — parent (module|class) -> child (class|function|method)
     CALLS     — function -> function, weight = number of call sites
     IMPORTS   — module -> module dependency, weight = reference count
+    INHERITS  — class -> class/base symbol
+    DECORATES — class/function -> decorator symbol
+    REFERENCES— scope -> referenced symbol
+    ASSIGNS   — scope -> term introduced by assignment
 
 Neo4j labels: every node carries the base label ``:Cg`` plus one structural
 label from ``TYPE_LABEL``. The MERGE key is the composite
@@ -41,7 +45,19 @@ NODE_TYPES = (NODE_MODULE, NODE_CLASS, NODE_FUNCTION, NODE_TERM)
 EDGE_DEFINES = "DEFINES"
 EDGE_CALLS = "CALLS"
 EDGE_IMPORTS = "IMPORTS"
-EDGE_TYPES = (EDGE_DEFINES, EDGE_CALLS, EDGE_IMPORTS)
+EDGE_INHERITS = "INHERITS"
+EDGE_DECORATES = "DECORATES"
+EDGE_REFERENCES = "REFERENCES"
+EDGE_ASSIGNS = "ASSIGNS"
+EDGE_TYPES = (
+    EDGE_DEFINES,
+    EDGE_CALLS,
+    EDGE_IMPORTS,
+    EDGE_INHERITS,
+    EDGE_DECORATES,
+    EDGE_REFERENCES,
+    EDGE_ASSIGNS,
+)
 
 # structural Neo4j label per node type (in addition to the base :Cg label)
 TYPE_LABEL = {
@@ -64,6 +80,7 @@ class CgNode:
     file: str = ""
     lineno: int = 0
     loc: int = 0
+    attrs: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.type not in NODE_TYPES:
@@ -75,7 +92,7 @@ class CgNode:
 
     def props(self) -> dict:
         """Flat scalar property map (graphml/Neo4j safe — no nested values)."""
-        return {
+        out = {
             "qualified_name": self.qualified_name,
             "name": self.name,
             "type": self.type,
@@ -85,6 +102,10 @@ class CgNode:
             "lineno": self.lineno,
             "loc": self.loc,
         }
+        for k, v in sorted(self.attrs.items()):
+            if isinstance(v, (str, int, float, bool)) or v is None:
+                out[f"attr_{k}"] = v
+        return out
 
 
 @dataclass
@@ -95,6 +116,7 @@ class CgEdge:
     target: str  # qualified_name of target node
     etype: str  # one of EDGE_TYPES
     weight: int = 1
+    attrs: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.etype not in EDGE_TYPES:

@@ -20,6 +20,13 @@ from .fitness import (
     predicate,
 )
 from .model import (
+    EDGE_ASSIGNS,
+    EDGE_CALLS,
+    EDGE_DECORATES,
+    EDGE_DEFINES,
+    EDGE_IMPORTS,
+    EDGE_INHERITS,
+    EDGE_REFERENCES,
     EDGE_TYPES,
     NODE_TYPES,
     TYPE_LABEL,
@@ -36,6 +43,8 @@ __version__ = "0.1.0"
 __all__ = [
     "Graph", "CgNode", "CgEdge",
     "NODE_TYPES", "EDGE_TYPES", "TYPE_LABEL",
+    "EDGE_DEFINES", "EDGE_CALLS", "EDGE_IMPORTS",
+    "EDGE_INHERITS", "EDGE_DECORATES", "EDGE_REFERENCES", "EDGE_ASSIGNS",
     # mechanical schema conformance
     "validate", "Violation",
     # structural fitness gates (data-driven)
