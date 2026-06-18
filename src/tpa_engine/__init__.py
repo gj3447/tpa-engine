@@ -26,15 +26,22 @@ from .model import (
     CgEdge,
     CgNode,
     Graph,
+    Violation,
+    validate,
 )
+from .sinks import SINKS, GraphSink
 
 __version__ = "0.1.0"
 
 __all__ = [
     "Graph", "CgNode", "CgEdge",
     "NODE_TYPES", "EDGE_TYPES", "TYPE_LABEL",
+    # mechanical schema conformance
+    "validate", "Violation",
     # structural fitness gates (data-driven)
     "import_cycles", "cycle_count", "check", "Gate", "GateResult",
     "parse_gate", "predicate", "PREDICATE_REGISTRY",
+    # sink registry
+    "SINKS", "GraphSink",
     "__version__",
 ]

@@ -82,6 +82,23 @@ def load(graph: Graph, uri: str, user: str, password: str,
     return {"corpus": corpus, "labels": label_counts, "edges": edge_counts}
 
 
+def count(corpus: str, *, uri: str, user: str, password: str,
+          database: str | None = None) -> int:
+    """Read-back: number of :Cg nodes for ``corpus`` in the store.
+
+    The prerequisite seam for incremental load-then-verify round-trips (idempotency
+    assertions, diff-then-update) — it never touches the write path."""
+    from neo4j import GraphDatabase  # noqa: PLC0415
+
+    drv = GraphDatabase.driver(uri, auth=(user, password))
+    try:
+        with drv.session(database=database) if database else drv.session() as s:
+            rec = s.run("MATCH (n:Cg {cg_corpus:$c}) RETURN count(n) AS c", c=corpus).single()
+            return int(rec["c"]) if rec else 0
+    finally:
+        drv.close()
+
+
 def _chunks(seq, n):
     for i in range(0, len(seq), n):
         yield seq[i:i + n]

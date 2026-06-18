@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from .backends import BACKENDS, BackendRequest
+from .sinks import SINKS
 from .model import Graph
 
 
@@ -26,27 +27,24 @@ def _build_graph(args) -> Graph:
 
 
 def _emit(graph: Graph, args) -> None:
+    # Single sink dispatch — one Protocol method, not a per-sink free-function branch.
     counts = graph.counts()
     if args.out == "neo4j":
-        from . import neo4j_sink
         uri = args.neo4j_uri or os.environ.get("TPA_ENGINE_NEO4J_URI", "bolt://localhost:7687")
         user = args.neo4j_user or os.environ.get("TPA_ENGINE_NEO4J_USER", "neo4j")
         pw = args.neo4j_password or os.environ.get("TPA_ENGINE_NEO4J_PASSWORD")
         if not pw:
             sys.exit("error: neo4j password required "
                      "(--neo4j-password or TPA_ENGINE_NEO4J_PASSWORD)")
-        summary = neo4j_sink.load(graph, uri=uri, user=user, password=pw,
-                                  database=args.neo4j_database)
+        summary = SINKS["neo4j"].write(graph, uri=uri, user=user, password=pw,
+                                       database=args.neo4j_database)
         print(f"[tpa-engine] loaded corpus '{graph.corpus}' into {uri}")
         print(f"  node labels: {summary['labels']}")
         print(f"  edge types : {summary['edges']}")
     else:
-        from . import graphml_sink
         stem = Path(args.output or f"{args.corpus}_tpa_engine")
-        if args.out == "graphml":
-            p = graphml_sink.write_graphml(graph, stem.with_suffix(".graphml"))
-        else:  # json
-            p = graphml_sink.write_json(graph, stem.with_suffix(".json"))
+        suffix = ".graphml" if args.out == "graphml" else ".json"
+        p = SINKS[args.out].write(graph, path=stem.with_suffix(suffix))
         print(f"[tpa-engine] wrote {p}")
 
     print(f"[tpa-engine] nodes={counts['total_nodes']} {counts['nodes']}")
@@ -149,7 +147,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     idx = sub.add_parser("index", help="index a repo into a :Cg graph")
     _add_graph_args(idx)
-    idx.add_argument("--out", choices=("neo4j", "graphml", "json"),
+    idx.add_argument("--out", choices=tuple(sorted(SINKS)),
                      default="graphml", help="output sink (default: graphml)")
     idx.add_argument("--output", help="output file stem (graphml/json sinks)")
     # neo4j connection (env-defaulted)

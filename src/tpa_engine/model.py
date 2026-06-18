@@ -181,3 +181,46 @@ class Graph:
                 for e in self.edge_list()
             ],
         }
+
+
+# ----- mechanical schema conformance (one declaration, validated) ----------- #
+# The :Cg ontology is declared ONCE above (NODE_TYPES / EDGE_TYPES / TYPE_LABEL); the
+# sinks derive their labels from TYPE_LABEL (single source). ``validate`` is the matching
+# mechanical check: an off-ontology emission is a *typed failure surfaced as a Violation*,
+# not silent corruption (the Glean/.angle, Kythe/schema.proto, CodeQL/.dbscheme, blarify/
+# RelationshipType discipline). A drift test asserts ``validate(graph) == []``.
+
+
+@dataclass(frozen=True)
+class Violation:
+    """One schema-conformance breach. ``kind`` ∈ {bad_node_type, bad_label, bad_edge_type,
+    dangling_edge}; ``ref`` names the offending node/edge; ``detail`` explains."""
+
+    kind: str
+    ref: str
+    detail: str
+
+
+def validate(graph: Graph) -> list[Violation]:
+    """Return every way ``graph`` violates the declared :Cg ontology (empty = conformant).
+
+    Checks: each node's ``type`` is in NODE_TYPES and its ``label()`` matches TYPE_LABEL;
+    each edge's ``etype`` is in EDGE_TYPES and both endpoints exist as nodes. Deterministic
+    (sorted iteration)."""
+    out: list[Violation] = []
+    for n in graph.node_list():
+        if n.type not in NODE_TYPES:
+            out.append(Violation("bad_node_type", n.qualified_name,
+                                 f"type {n.type!r} not in {NODE_TYPES}"))
+        elif n.label() != TYPE_LABEL[n.type]:
+            out.append(Violation("bad_label", n.qualified_name,
+                                 f"label {n.label()!r} != {TYPE_LABEL[n.type]!r}"))
+    for e in graph.edge_list():
+        ref = f"{e.source}-[{e.etype}]->{e.target}"
+        if e.etype not in EDGE_TYPES:
+            out.append(Violation("bad_edge_type", ref, f"etype {e.etype!r} not in {EDGE_TYPES}"))
+        if e.source not in graph.nodes:
+            out.append(Violation("dangling_edge", ref, f"source {e.source!r} is not a node"))
+        if e.target not in graph.nodes:
+            out.append(Violation("dangling_edge", ref, f"target {e.target!r} is not a node"))
+    return out
