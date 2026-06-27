@@ -74,6 +74,10 @@ tpa-engine index /path/to/scala-repo --backend scala-source-static --corpus mysc
 tpa-engine index /path/to/repo --backend scip --corpus myrepo-scip --out neo4j \
     --neo4j-uri bolt://localhost:7687 --neo4j-user neo4j --neo4j-password ***
 
+# consumer workspace path: HTTP MCP server owns the Neo4j credential/driver hop
+tpa-engine index /path/to/repo --backend scala-source-static --corpus myscala \
+    --out mcp-neo4j --mcp-neo4j-url http://localhost:55013/mcp/
+
 # reuse an existing index.scip instead of re-running scip-python
 tpa-engine index /path/to/repo --backend scip --scip-index index.scip \
     --corpus myrepo-scip --out json --output myrepo
@@ -131,8 +135,15 @@ tpa-engine check . --backend ast --src-subdir src --corpus myrepo \
 Connection flags default to env vars: `TPA_ENGINE_NEO4J_URI`,
 `TPA_ENGINE_NEO4J_USER`, `TPA_ENGINE_NEO4J_PASSWORD`.
 
+MCP connection flags default to `TPA_ENGINE_MCP_NEO4J_URL`, falling back to the
+consumer MCP URL. `--out mcp-neo4j` keeps the same `:Cg` ontology but uses
+`write_neo4j_cypher` / `read_neo4j_cypher` over MCP instead of Bolt credentials.
+By default it also adds `:ConsumerCodeSymbol(id)` compatibility labels so consumer's
+existing indexes accelerate relationship endpoint matching.
+
 Outputs: `--out graphml` / `--out json` write a file (no DB); `--out neo4j`
-idempotently MERGEs into Neo4j (clears only the chosen `cg_corpus` first).
+idempotently MERGEs into Neo4j over Bolt; `--out mcp-neo4j` MERGEs through an
+MCP Neo4j server. Both DB sinks clear only the chosen `cg_corpus` first.
 
 ## The `:Cg` schema
 

@@ -41,6 +41,21 @@ def _emit(graph: Graph, args) -> None:
         print(f"[tpa-engine] loaded corpus '{graph.corpus}' into {uri}")
         print(f"  node labels: {summary['labels']}")
         print(f"  edge types : {summary['edges']}")
+    elif args.out == "mcp-neo4j":
+        from .mcp_neo4j_sink import DEFAULT_URL
+
+        url = args.mcp_neo4j_url or os.environ.get("TPA_ENGINE_MCP_NEO4J_URL", DEFAULT_URL)
+        summary = SINKS["mcp-neo4j"].write(
+            graph,
+            url=url,
+            batch_size=args.mcp_batch_size,
+            clear=not args.mcp_no_clear,
+            bpc_compat=not args.mcp_no_bpc_compat,
+        )
+        print(f"[tpa-engine] loaded corpus '{graph.corpus}' through MCP {url}")
+        print(f"  node labels: {summary['labels']}")
+        print(f"  edge types : {summary['edges']}")
+        print(f"  readback   : {summary['readback']}")
     else:
         stem = Path(args.output or f"{args.corpus}_tpa_engine")
         suffix = ".graphml" if args.out == "graphml" else ".json"
@@ -137,9 +152,15 @@ def _add_graph_args(sp: argparse.ArgumentParser) -> None:
     sp.add_argument("--doc-filter", default=None,
                     help="scip: only documents under this path prefix")
     sp.add_argument("--joern-export", default=None,
-                    help="joern: read an existing Joern JSON CPG export")
+                    help="joern: read an existing Joern JSON CPG export "
+                         "(omit to run joern-parse on the repo automatically)")
     sp.add_argument("--joern-raw-out", default=None,
                     help="joern: optional path to copy the raw export artifact")
+    sp.add_argument("--joern-home", default=None,
+                    help="joern: joern-cli dir (else $JOERN_HOME or joern-parse on PATH)")
+    sp.add_argument("--joern-language", default=None,
+                    help="joern: joern-parse --language frontend (javasrc, c, jssrc, "
+                         "pythonsrc, ...); auto-detected if omitted")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -163,6 +184,15 @@ def build_parser() -> argparse.ArgumentParser:
                      help="default env TPA_ENGINE_NEO4J_PASSWORD")
     idx.add_argument("--neo4j-database", default=None,
                      help="optional Neo4j database name")
+    # MCP Neo4j connection (consumer default)
+    idx.add_argument("--mcp-neo4j-url", default=None,
+                     help="default env TPA_ENGINE_MCP_NEO4J_URL / consumer MCP URL")
+    idx.add_argument("--mcp-batch-size", type=int, default=1000,
+                     help="MCP Neo4j batch size (default: 1000)")
+    idx.add_argument("--mcp-no-clear", action="store_true",
+                     help="do not clear the existing :Cg corpus before MCP load")
+    idx.add_argument("--mcp-no-bpc-compat", action="store_true",
+                     help="do not add ConsumerCodeSymbol labels/ids for consumer index compatibility")
 
     chk = sub.add_parser("check",
                          help="fitness gate: nonzero exit on a structural regression "

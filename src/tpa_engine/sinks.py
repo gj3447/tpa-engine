@@ -8,6 +8,7 @@ prerequisite for incremental load-then-verify round-trips). This is blarify's
 ``AbstractDbManager`` (save + query behind one Port) and jQAssistant's ``Store`` interface,
 translated to Python via the same registry idiom the backends already use.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,14 +44,31 @@ class Neo4jSink:
 
     def write(self, graph: Graph, *, uri, user, password, database=None) -> dict:
         from . import neo4j_sink
-        return neo4j_sink.load(graph, uri=uri, user=user, password=password,
-                               database=database)
+
+        return neo4j_sink.load(graph, uri=uri, user=user, password=password, database=database)
 
     def count(self, corpus: str, *, uri, user, password, database=None) -> int:
         """Read-back: number of :Cg nodes for ``corpus`` currently in the store."""
         from . import neo4j_sink
-        return neo4j_sink.count(corpus, uri=uri, user=user, password=password,
-                                database=database)
+
+        return neo4j_sink.count(corpus, uri=uri, user=user, password=password, database=database)
+
+
+@dataclass(frozen=True)
+class McpNeo4jSink:
+    name: str = "mcp-neo4j"
+
+    def write(self, graph: Graph, *, url, batch_size=1000, clear=True, bpc_compat=True) -> dict:
+        from . import mcp_neo4j_sink
+
+        return mcp_neo4j_sink.load(
+            graph, url=url, batch_size=batch_size, clear=clear, bpc_compat=bpc_compat
+        )
+
+    def count(self, corpus: str, *, url) -> dict:
+        from . import mcp_neo4j_sink
+
+        return mcp_neo4j_sink.count(corpus, url=url)
 
 
 @dataclass(frozen=True)
@@ -59,6 +77,7 @@ class GraphmlSink:
 
     def write(self, graph: Graph, *, path) -> Path:
         from . import graphml_sink
+
         return graphml_sink.write_graphml(graph, path)
 
 
@@ -68,9 +87,11 @@ class JsonSink:
 
     def write(self, graph: Graph, *, path) -> Path:
         from . import graphml_sink
+
         return graphml_sink.write_json(graph, path)
 
 
 register(Neo4jSink())
+register(McpNeo4jSink())
 register(GraphmlSink())
 register(JsonSink())

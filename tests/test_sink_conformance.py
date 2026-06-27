@@ -1,5 +1,6 @@
 """Sink conformance (OQ9) — one parameterized test over the SINKS registry; a new sink is
 data, not a cli._emit edit. Plus the read-back seam (SECONDARY metric 0 -> >=1)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,6 +43,10 @@ def test_neo4j_sink_has_read_back_seam():
     # SECONDARY metric 0 -> >=1: a read-back method exists (the incremental prerequisite).
     assert hasattr(SINKS["neo4j"], "count") and callable(SINKS["neo4j"].count)
     assert callable(neo4j_sink.count)
+
+
+def test_mcp_neo4j_sink_has_read_back_seam():
+    assert hasattr(SINKS["mcp-neo4j"], "count") and callable(SINKS["mcp-neo4j"].count)
 
 
 def test_out_choices_derive_from_registry():
