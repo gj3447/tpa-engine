@@ -76,7 +76,7 @@ tpa-engine index /path/to/repo --backend scip --corpus myrepo-scip --out neo4j \
 
 # consumer workspace path: HTTP MCP server owns the Neo4j credential/driver hop
 tpa-engine index /path/to/repo --backend scala-source-static --corpus myscala \
-    --out mcp-neo4j --mcp-neo4j-url http://localhost:55013/mcp/
+    --out mcp-neo4j --mcp-neo4j-url http://<KG_MCP_HOST>:55013/mcp/
 
 # reuse an existing index.scip instead of re-running scip-python
 tpa-engine index /path/to/repo --backend scip --scip-index index.scip \
