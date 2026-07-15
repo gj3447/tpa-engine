@@ -1,0 +1,72 @@
+OpenTimestamps priority manifest
+================================
+
+이 파일의 sha256 은 비트코인에 앵커된다(옆의 .ots). 따라서 아래 커밋 sha 는
+그 블록시각 이전에 이미 존재했음이 신뢰 없이 증명된다.
+
+repository   : mark-tpa-engine
+remote       : https://github.com/gj3447/tpa-engine.git
+branch       : master
+commit       : c764c488f65e2fa7fc0974cf155ce588eca0ea1f
+tree         : 962fe6f191ee40699008cee77d4a645be7134840
+commit_date  : 2026-07-13T15:48:01+09:00   (주의: git 시각은 위조 가능 — 신뢰 근거는 .ots 뿐)
+stamped_at   : 2026-07-15T06:48:29Z (로컬 주장. 권위 있는 시각은 .ots 의 블록시각)
+
+author       : Gyeongjun Ra (라경준)
+programme    : METAHUMOTONIC / SYMPOSIUM
+license      : see LICENSE
+
+검증:
+  ots verify priority-20260715.manifest.ots
+  git cat-file -p c764c488f65e2fa7fc0974cf155ce588eca0ea1f        # 매니페스트가 고정한 바로 그 커밋
+
+파일별 sha256 (git 추적 대상 전체)
+-----------------------------------
+61c8742859b157fbc73a500f6e37c20f04dbdc32d66c9fabe8fe56258535e34b  .gitignore
+553bc08cb8247ec6eac5ac4deae0c424f8b78e54baa2644e2745e3536ebba700  AGENTS.md
+6e7510b4c42964a04018a8e04d24723529abacd26314f708a8488a38c739dcd7  README.md
+fea0e6298c2777625c3a29abbe6c6b9dc70971eedc00854837ce5085bd49b325  docs/ARCHITECTURE.md
+9393941224f3129ecca5fbfb46b3b44c81e36c05d7afc80d0ae5b187ef17abba  pyproject.toml
+0dcd07a23fefcc48049747386fd77e924230a097351593dc404ebf2238b35d30  src/tpa_engine/__init__.py
+096bb423aff1cf5ff2510c7c800d39c806f6abed0f1ea1108ebe8885d6ff7621  src/tpa_engine/ast_backend.py
+4f76fd9bedc26af75cd4271dd35498ccc3fa5b9cda325e26cbf4891d0319b352  src/tpa_engine/backends.py
+ef4d457508f942e3a36e0d13bb8b071ac750b0601cb5a8c5455d82cdeb947d71  src/tpa_engine/baseline.py
+072cf3cce631b7e27808d2a092548a342b2191b8a8ecc859a42782769eee9cb1  src/tpa_engine/cli.py
+867803bb05fa8337fb20d0e55606c5f26f4909ec85e91b87c3034fd5730675ca  src/tpa_engine/fitness.py
+560b0d3cada63e96fab23bf0e61606d88863463c0a4e0a618771a5c222a61222  src/tpa_engine/frontends/__init__.py
+321af4ac9a8d0710aee25175781fac65aa040d3443285ed91319b4019d34db31  src/tpa_engine/frontends/python_static.py
+2c256137ca7b8a6bf0162da575f0ac7df9c643383a2c285ddb4e7ffce2410b68  src/tpa_engine/frontends/scala_static.py
+de40f59a0baea5df06550e5e6775078972d6df7d0d556639ad170fb068768592  src/tpa_engine/graphml_sink.py
+a2279d3c121b8f3e2b5a20752a0267de76b665d397531edff6c6ede3312fedc6  src/tpa_engine/joern_backend.py
+d054e2081fdad6690394737357bccb7f78164c8c96774de29016dfc87ecfdd5d  src/tpa_engine/mcp_neo4j_sink.py
+d9a5e17d13ffe2c5f8ee0e99fc4f098d407c00ae2a134a2df831eaae3440eddd  src/tpa_engine/model.py
+ff22f2bb083adf4db6e80a6eea9426109deee95a3669ae9cf6b4a2d6e2577735  src/tpa_engine/neo4j_sink.py
+04cb20f2b8be73f6c0376b5b3e84c3ae20ebaff0ad3d23ba2d16f866b395ed7d  src/tpa_engine/scip.proto
+33f420e35c473392eeb427972f1d95b149266baec22b20151b4e51ad0a7a44ca  src/tpa_engine/scip_backend.py
+18ecc8f35f3f94c0d08341b9d9b70188b3214b459c373a2231b587bb95867c53  src/tpa_engine/scip_pb2.py
+5f2539fa33477788ad2f2bb7ad9be577ac123d97779c213649eb1cf8d335976a  src/tpa_engine/sinks.py
+0e139976bf3b273cc7bd5e8a56937a9ea380cd9e57f457b884b43bb897b0098e  tests/fixtures/javapkg/com/acme/App.java
+362d1c0bf6336bab8efe81d6d62249ea92fc924cb250a50802bc1adc263f8074  tests/fixtures/javapkg/com/acme/Base.java
+a4459b1d172b21451b7147bf669706a0bf36c566283faacc322f2b4c3343fa74  tests/fixtures/javapkg/com/acme/Greeter.java
+259b1b02359e902d7344f4948209fc835a5340d4c23dc9055f07d2af4af0d0f7  tests/fixtures/joern_export.json
+6d3fd42de5cc40320e1ac9c4cf9743548f498e022c35689e0fbf7177e39760fe  tests/fixtures/scalapkg/src/main/scala/com/acme/Base.scala
+a6259e7e0fc6787681adcf39e3cc918a3573d92ff419d0f7dd3a101792f4f3e5  tests/fixtures/scalapkg/src/main/scala/com/acme/Impl.scala
+560bfc3e4dabb097ef6aa8ec829f6297059ca3f45c5916a4b9122850ceb5aebe  tests/fixtures/staticpkg/__init__.py
+890f1e86ddb47a667bd48c4cacfa69031eaeeb01060d90554797e743e5f3d87f  tests/fixtures/staticpkg/base.py
+ee6ac3633c2220eb8b44040c4dc9919e16de45a46a2505bf53fa6c4d657b0f8c  tests/fixtures/staticpkg/impl.py
+fdfdee543911d6f0303c316c041c7fb87d61167ff6ba888f316a0dc15c3492e2  tests/fixtures/tinypkg/__init__.py
+e53ad412c520d621642e22567c845f2d5983e203c44657d0c33d50d848fc9122  tests/fixtures/tinypkg/core.py
+c5cd6ca0dcb310ae0bbb818523eeaf55cc11fb69a80557b78974c2483c15cc50  tests/fixtures/tinypkg/util.py
+c257488a2403a388b573d46fa46fb77b9cf24bddcc9de209ad0bd8c01cc0375a  tests/test_ast_backend.py
+17be2e9ca4f09d638c747274ca9b30be1612dbffe3dd1bf0dcaa1f7321416898  tests/test_backend_conformance.py
+360558595ce5568760a8f9b59ba668aef021fda5d0dcdbafa7c32c7466783bd0  tests/test_baseline.py
+0995c4c9866447e2c58988b312bd218afd6d495407d0affbf306b55eb5080724  tests/test_fitness.py
+5efcd8a57e2638f3c36707d9c492202abcb3c366c8e91e906131748bd747c33c  tests/test_joern_backend.py
+a151fd2f1eb9c90dbb015a79d64f8868e5110a27e63d38442d1e75ee3b636610  tests/test_joern_run_integration.py
+a8debc43c9c0f6d4d48c8763f20e228216be1d43f9397ed43bfe3dfaedbc91b8  tests/test_mcp_neo4j_sink.py
+d7912a1fe826a80139f1021324ec047b9162c585b7d20c1dfcdcb100f9867e19  tests/test_model.py
+ae87a153ebb8bbfd8c8c0fa5d2443092377bd43bc46457da4138dfe9cd64df02  tests/test_model_conformance.py
+7ef3312da12cfbd542fdb85cfcc9138c5830b842ddd348ea5cc2a7425623b89f  tests/test_python_static_backend.py
+682ead6a40be43cf670cd27b3d11bd6cb551388828a8ed1ea0b6066254c55c79  tests/test_scala_static_backend.py
+4097b099c67607fbfecb9f750509373456a16d4cdef6b6b394c79dfb7f58ff11  tests/test_scip_tokenizer.py
+5a9fd6d070acf14cb930d92b888572280368ca8712784ec3ec708c0f8e6c1bc0  tests/test_sink_conformance.py
